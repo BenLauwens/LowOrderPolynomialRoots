@@ -1,0 +1,9 @@
+c/build/fcsprp
+c/build/fcsprp.o
+c/build/main.o
+fortran/build/fcsprp
+fortran/build/fcsprp.mod
+fortran/build/fcsprp.o
+fortran/build/main.o
+fortran/src/fcsprp.mod
+fortran/src/utils.mod
