@@ -333,6 +333,9 @@ let N = 1000
 		show(histogram(times))
 		println()
 		println(n, '\t', minimum(times), '\t', sum(times)/ N, '\t', maximum(times), '\t', sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
+		open("out2.txt", "a") do io
+			println(io, n, ";", minimum(times), ";", sum(times)/ N, ";", maximum(times), ";", sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
+		end
 	end
 	for n in 3:15
         #Random.seed!(150)
@@ -344,5 +347,8 @@ let N = 1000
 		show(histogram(times))
 		println()
         println(n, '\t', minimum(times), '\t', sum(times)/ N, '\t', maximum(times), '\t', sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
+		open("out2.txt", "a") do io
+			println(io, n, ";", minimum(times), ";", sum(times)/ N, ";", maximum(times), ";", sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
+		end
     end
 end

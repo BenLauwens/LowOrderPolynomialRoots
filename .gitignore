@@ -7,3 +7,4 @@ fortran/build/fcsprp.o
 fortran/build/main.o
 fortran/src/fcsprp.mod
 fortran/src/utils.mod
+examples/out1.txt
