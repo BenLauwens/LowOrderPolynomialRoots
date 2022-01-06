@@ -13,8 +13,8 @@ contains
         real(kind=REAL64), intent(out) :: res
         real(kind=REAL64) :: a1, b, c, delta
 
-        a1 = 1.0D0 / coeffs(1)
-        b= -0.5D0 * coeffs(2) * a1
+        a1 = 1.0_REAL64 / coeffs(1)
+        b= -0.5_REAL64 * coeffs(2) * a1
         c = coeffs(3) * a1
         delta = b * b - c
         res = huge(0.0_REAL64)
@@ -47,8 +47,8 @@ contains
         real(kind=REAL64), dimension(2), intent(out) :: res
         real(kind=REAL64) :: a1, b, c, delta
 
-        a1 = 1.0D0 / coeffs(1)
-        b = -0.5D0 * coeffs(2) * a1
+        a1 = 1.0_REAL64 / coeffs(1)
+        b = -0.5_REAL64 * coeffs(2) * a1
         c = coeffs(3) * a1
         delta = b * b - c
         res = huge(0.0_REAL64)
@@ -105,7 +105,7 @@ contains
         integer :: i
 
         v = coeffs(1)
-        d = 0.0D0
+        d = 0.0_REAL64
         do i = 2, size(coeffs)
             d = d * x + v
             v = v * x + coeffs(i)
@@ -124,10 +124,10 @@ contains
         colow = coeffs(1)
         cohigh = coeffs(1)
         do i = 2, size(coeffs)
-            if (colow > 0.0D0) then
+            if (colow > 0.0_REAL64) then
                 colow = colow * low + coeffs(i)
                 cohigh = cohigh * high + coeffs(i)
-            elseif (cohigh < 0.0D0) then
+            elseif (cohigh < 0.0_REAL64) then
                 colow = colow * high + coeffs(i)
                 cohigh = cohigh * low + coeffs(i)
             else
@@ -150,22 +150,22 @@ contains
         colow = coeffs(1)
         cohigh = coeffs(1)
         do i = 2, size(coeffs)
-            if (colow > 0.0D0) then
-                if (low > 0.0D0) then
+            if (colow > 0.0_REAL64) then
+                if (low > 0.0_REAL64) then
                     tmp = colow * low + coeffs(i)
                     cohigh = cohigh * high + coeffs(i)
-                elseif (high < 0.0D0) then
+                elseif (high < 0.0_REAL64) then
                     tmp = cohigh * low + coeffs(i)
                     cohigh = colow * high + coeffs(i)
                 else
                     tmp = cohigh * low + coeffs(i)
                     cohigh = cohigh * high + coeffs(i)
                 end if
-            elseif (cohigh < 0.0D0) then
-                if (low > 0.0D0) then
+            elseif (cohigh < 0.0_REAL64) then
+                if (low > 0.0_REAL64) then
                     tmp = colow * high + coeffs(i)
                     cohigh = cohigh * low + coeffs(i)
-                elseif (high < 0.0D0) then
+                elseif (high < 0.0_REAL64) then
                     tmp = cohigh * high + coeffs(i)
                     cohigh = colow * low + coeffs(i)
                 else
@@ -173,10 +173,10 @@ contains
                     cohigh = colow * low + coeffs(i)
                 end if
             else
-                if (low > 0.0D0) then
+                if (low > 0.0_REAL64) then
                     tmp = colow * high + coeffs(i)
                     cohigh = cohigh * high + coeffs(i)
-                elseif (high < 0.0D0) then
+                elseif (high < 0.0_REAL64) then
                     tmp = cohigh * low + coeffs(i)
                     cohigh = colow * low + coeffs(i)
                 else
@@ -211,9 +211,9 @@ contains
             end if
             return
         end if
-        coeffs1 = 1.0D0 / coeffs(1)
-        poly(1) = 1.0D0
-        high = 1.0D0
+        coeffs1 = 1.0_REAL64 / coeffs(1)
+        poly(1) = 1.0_REAL64
+        high = 1.0_REAL64
         do i = 2, N
             dpoly(i-1) = (N+1-i) * poly(i-1)
             poly(i) = coeffs(i) * coeffs1
@@ -221,68 +221,48 @@ contains
                 high = poly(i)
             end if
         end do
-        if (high > 0.0) then
+        if (high > 0.0_REAL64) then
             return
         end if
-        low = 0.0D0
-        high = 1.0D0 - high
+        low = 0.0_REAL64
+        high = 1.0_REAL64 - high
         index = 0
         do
-            mid = 0.5D0 * (low + high)
+            mid = 0.5_REAL64 * (low + high)
             call horner(poly, mid, comid)
             call posintervalhorner(dpoly, low, high, dcolow, dcohigh)
-            if (dcolow < 0.0D0 .and. dcohigh > 0.0D0) then
-                if (comid > 0.0D0) then
-                    leftlow = MIN64
+            if (dcolow < 0.0_REAL64 .and. dcohigh > 0.0_REAL64) then
+                if (comid > 0.0_REAL64) then
+                    leftlow = low
                     lefthigh = mid - comid / dcohigh
                     rightlow = mid - comid / dcolow
-                    righthigh = MAX64
-                elseif (comid < 0.0D0) then
-                    leftlow = MIN64
+                    righthigh = high
+                elseif (comid < 0.0_REAL64) then
+                    leftlow = low
                     lefthigh = mid - comid / dcolow
                     rightlow = mid - comid / dcohigh
-                    righthigh = MAX64
+                    righthigh = high
                 else
                     res = mid
                     return
                 end if
-                if (.not.(high < leftlow .or. lefthigh < low)) then
-                    if (.not.(high < rightlow .or. righthigh < low)) then
+                if (leftlow < lefthigh) then
+                    if (rightlow < righthigh) then
                         index = index + 1
-                        if (low < rightlow) then
-                            list(1, index) = rightlow
-                        else
-                            list(1, index) = low
-                        end if
-                        if (high < righthigh) then
-                            list(2, index) = high
-                        else
-                            list(2, index) = righthigh
-                        end if
+                        list(1, index) = rightlow
+                        list(2, index) = righthigh
                     end if
-                    if (low < leftlow) then
-                        low = leftlow
-                    end if
-                    if (.not.(high < lefthigh)) then
-                        high = lefthigh
-                    end if
-                elseif (.not.(high < rightlow .or. righthigh < low)) then
-                    if (low < rightlow) then
-                        low = rightlow
-                    end if
-                    if (.not.(high < righthigh)) then
-                        high = righthigh
-                    end if
-                elseif (index == 0) then
-                    return
-                else
-                    low = list(1, index)
-                    high = list(2, index)
-                    index = index - 1
+                    low = leftlow
+                    high = lefthigh
+                    cycle
+                elseif (rightlow < righthigh) then
+                    low = rightlow
+                    high = righthigh
+                    cycle
                 end if
             else
                 call horner2(poly, low, high, colow, cohigh)
-                if (colow * cohigh < 0.0) then
+                if (colow * cohigh < 0.0_REAL64) then
                     do
                         call hornerd(poly, mid, comid, dcomid)
                         delta = comid / dcomid
@@ -292,10 +272,10 @@ contains
                         elseif (low < res .and. res < high) then
                             mid = res
                         else
-                            if (comid * colow > 0.0D0) then
+                            if (comid * colow > 0.0_REAL64) then
                                 low = mid
                                 colow = comid
-                            elseif (comid * cohigh > 0.0D0) then
+                            elseif (comid * cohigh > 0.0_REAL64) then
                                 high = mid
                                 cohigh = comid
                             else
@@ -303,18 +283,16 @@ contains
                                 return
                             end if
                             mid = (low*cohigh - high*colow) / (cohigh - colow)
-                            if (.not.(low < mid .and. mid < high)) then
-                                mid = 0.5D0 * (low + high)
-                            end if
                         end if
                     end do
-                elseif (index == 0) then
-                    return
-                else
-                    low = list(1, index)
-                    high = list(2, index)
-                    index = index - 1
                 end if
+            end if
+            if (index == 0) then
+                return
+            else
+                low = list(1, index)
+                high = list(2, index)
+                index = index - 1
             end if
         end do
     end subroutine
@@ -338,11 +316,11 @@ contains
             res(1) = - coeffs(2) / coeffs(1)
             return
         end if
-        coeffs1 = 1.0D0 / coeffs(1)
-        poly(1) = 1.0D0
-        low = 1.0D0
-        high = 1.0D0
-        s = -1.0D0
+        coeffs1 = 1.0_REAL64 / coeffs(1)
+        poly(1) = 1.0_REAL64
+        low = 0.0_REAL64
+        high = 0.0_REAL64
+        s = -1.0_REAL64
         do i = 2, N
             dpoly(i-1) = (N+1-i) * poly(i-1)
             poly(i) = coeffs(i) * coeffs1
@@ -354,80 +332,58 @@ contains
             end if
             s = -s
         end do
-        if (low > 0.0D0) then 
-            low = 1.0D0 
-        end if
-        if (high > 0.0D0) then 
-            high = 1.0D0 
-        end if
-        if (high == 1.0D0 .and. low == 1.0D0) then
-            return 
-        end if
-        low = low - 1.0D0
-        high = 1.0 - high
         index = 0
+        if (low < 0.0_REAL64) then
+            if (high < 0.0_REAL64) then
+                index = 1
+                list(1, index) = 0.0_REAL64
+                list(2, index) = 1.0_REAL64 - high
+            end if
+            low = low - 1.0_REAL64
+            high = 0.0_REAL64
+        else
+            low = 0.0_REAL64
+            high = 1.0_REAL64 - high
+        end if
         counter = 0
         do
             !print *, low, high
-            mid = 0.5D0 * (low + high)
+            mid = 0.5_REAL64 * (low + high)
             call horner(poly, mid, comid)
             call intervalhorner(dpoly, low, high, dcolow, dcohigh)
             !print *, mid, comid, dcolow, dcohigh
-            if (dcolow < 0.0D0 .and. dcohigh > 0.0D0) then
-                if (comid > 0.0D0) then
-                    leftlow = MIN64
+            if (dcolow < 0.0_REAL64 .and. dcohigh > 0.0_REAL64) then
+                if (comid > 0.0_REAL64) then
+                    leftlow = low
                     lefthigh = mid - comid / dcohigh
                     rightlow = mid - comid / dcolow
-                    righthigh = MAX64
-                elseif (comid < 0.0D0) then
-                    leftlow = MIN64
+                    righthigh = high
+                elseif (comid < 0.0_REAL64) then
+                    leftlow = low
                     lefthigh = mid - comid / dcolow
                     rightlow = mid - comid / dcohigh
-                    righthigh = MAX64
+                    righthigh = high
                 else
                     counter = counter + 1
                     res(counter) = mid
-                    if (index == 0) then
-                        return
-                    end if
-                    low = list(1, index)
-                    high = list(2, index)
-                    index = index - 1
-                    cycle
+                    leftlow = 0.0_REAL64
+                    lefthigh = 0.0_REAL64
+                    rightlow = 0.0_REAL64
+                    righthigh = 0.0_REAL64
                 end if
-                if (.not.(high < leftlow .or. lefthigh < low)) then
-                    if (.not.(high < rightlow .or. righthigh < low)) then
+                if (leftlow < lefthigh) then
+                    if (rightlow < righthigh) then
                         index = index + 1
-                        if (low < rightlow) then
-                            list(1, index) = rightlow
-                        else
-                            list(1, index) = low
-                        end if
-                        if (high < righthigh) then
-                            list(2, index) = high
-                        else
-                            list(2, index) = righthigh
-                        end if
+                        list(1, index) = rightlow
+                        list(2, index) = righthigh
                     end if
-                    if (low < leftlow) then
-                        low = leftlow
-                    end if
-                    if (.not.(high < lefthigh)) then
-                        high = lefthigh
-                    end if
-                elseif (.not.(high < rightlow .or. righthigh < low)) then
-                    if (low < rightlow) then
-                        low = rightlow
-                    end if
-                    if (.not.(high < righthigh)) then
-                        high = righthigh
-                    end if
-                elseif (index == 0) then
-                    return
-                else
-                    low = list(1, index)
-                    high = list(2, index)
-                    index = index - 1
+                    low = leftlow
+                    high = lefthigh
+                    cycle
+                elseif (rightlow < righthigh) then
+                    low = rightlow
+                    high = righthigh
+                    cycle
                 end if
             else
                 call horner2(poly, low, high, colow, cohigh)
@@ -440,46 +396,32 @@ contains
                         if (abs(delta) < 1.0D-8 * abs(mid)) then
                             counter = counter + 1
                             res(counter) = newmid
-                            if (index == 0) then
-                                return
-                            end if
-                            low = list(1, index)
-                            high = list(2, index)
-                            index = index - 1
                             exit
                         elseif (low < newmid .and. newmid < high) then
                             mid = newmid
                         else
-                            if (comid * colow > 0.0D0) then
+                            if (comid * colow > 0.0_REAL64) then
                                 low = mid
                                 colow = comid
-                            elseif (comid * cohigh > 0.0D0) then
+                            elseif (comid * cohigh > 0.0_REAL64) then
                                 high = mid
                                 cohigh = comid
                             else
                                 counter = counter + 1
                                 res(counter) = mid
-                                if (index == 0) then
-                                    return
-                                end if
-                                low = list(1, index)
-                                high = list(2, index)
-                                index = index - 1
                                 exit
                             end if
                             mid = (low*cohigh - high*colow) / (cohigh - colow)
-                            if (.not.(low < mid .and. mid < high)) then
-                                mid = 0.5D0 * (low + high)
-                            end if
                         end if
                     end do
-                elseif (index == 0) then
-                    return
-                else
-                    low = list(1, index)
-                    high = list(2, index)
-                    index = index - 1
                 end if
+            end if
+            if (index == 0) then
+                return
+            else
+                low = list(1, index)
+                high = list(2, index)
+                index = index - 1
             end if
         end do
     end subroutine

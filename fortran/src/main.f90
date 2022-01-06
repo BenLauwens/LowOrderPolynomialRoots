@@ -9,7 +9,7 @@ program main
     real(kind=REAL64) :: start, finish
     integer :: i, j, k, l
     integer, parameter :: N = 10000
-    integer, parameter :: S = 100
+    integer, parameter :: S = 1000
     real(kind=REAL64), dimension(:), allocatable :: out
 
     allocate(times(N))

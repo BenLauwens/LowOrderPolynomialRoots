@@ -1,9 +1,9 @@
 using StaticArrays
 
-@generated function smallestpositiverootintervalnewtonrobustregulafalsi(coeffs::NTuple{N,F}) where {N, F <: AbstractFloat}
-	if N === 1
+@generated function smallestpositiverootintervalnewtonregulafalsi(coeffs::NTuple{N,F}) where {N, F <: AbstractFloat}
+	if N == 1
 		return quote typemax(F) end
-	elseif N === 2
+	elseif N == 2
 		return quote
 			@inbounds ret = -coeffs[2] / coeffs[1]
 			if ret < 0
@@ -79,8 +79,9 @@ using StaticArrays
         end
     end
 	quote
+		$(Expr(:meta, :inline))
 		$ex
-		if mm > eps(F) return typemax(F) end
+		if mm > zero(F) return typemax(F) end
 		domlow, domhigh = zero(F), one(F) - mm
 		list = MVector{$(2N+1), NTuple{2,F}}(undef)
 		index = 0
@@ -90,30 +91,25 @@ using StaticArrays
 			$horner
 			$posintervalhorner
 			#@show comid codom′low codom′high
-			if codom′low < -eps(F) && codom′high > eps(F)
+			if codom′low < zero(F) < codom′high
 				leftlow, lefthigh, rightlow, righthigh = if comid > eps(F)
-					typemin(F), mid - comid / codom′high, mid - comid / codom′low, typemax(F)
+					domlow, mid - comid / codom′high, mid - comid / codom′low, domhigh
 				elseif comid < -eps(F)
-					typemin(F), mid - comid / codom′low, mid - comid / codom′high, typemax(F)
+					domlow, mid - comid / codom′low, mid - comid / codom′high, domhigh
 				else
 					return mid
 				end
 				#@show leftlow lefthigh rightlow righthigh
-				if !(domhigh < leftlow || lefthigh < domlow)
-					if !(domhigh < rightlow || righthigh < domlow)
+				if leftlow < lefthigh
+					if rightlow < righthigh
 						index += 1
-						#@inbounds list[index] = (domlow < rightlow ? rightlow : domlow, domhigh < righthigh ? domhigh : righthigh)
-						GC.@preserve list unsafe_store!(Base.unsafe_convert(Ptr{NTuple{2, F}}, pointer_from_objref(list)), convert(NTuple{2, F}, (domlow < rightlow ? rightlow : domlow, domhigh < righthigh ? domhigh : righthigh)), index)
+						@inbounds list[index] = rightlow, righthigh
 					end
-					domlow, domhigh = domlow < leftlow ? leftlow : domlow, domhigh < lefthigh ? domhigh : lefthigh
-				elseif !(domhigh < rightlow || righthigh < domlow)
-					domlow, domhigh = domlow < rightlow ? rightlow : domlow, domhigh < righthigh ? domhigh : righthigh
-				elseif index === 0
-					break
-				else
-					#@inbounds domlow, domhigh = list[index]
-					domlow, domhigh = GC.@preserve list unsafe_load(Base.unsafe_convert(Ptr{NTuple{2, F}}, pointer_from_objref(list)), index)
-					index -= 1
+					domlow, domhigh = leftlow, lefthigh
+					continue
+				elseif rightlow < righthigh
+					domlow, domhigh = rightlow, righthigh
+					continue
 				end
 			else
 				$horner2
@@ -128,41 +124,30 @@ using StaticArrays
 						elseif domlow < newmid < domhigh
 							mid = newmid
 						else
-							if comid * codomlow > -eps(F)
-								domlow = mid
-								codomlow = comid
-							elseif comid * codomhigh > -eps(F)
-								domhigh = mid
-								codomhigh = comid
+							if comid * codomlow > eps(F)
+								domlow, codomlow = mid, comid
+							elseif comid * codomhigh > eps(F)
+								domhigh, codomhigh = mid, comid
 							else
 								return mid
 							end
-							newmid = (domlow*codomhigh - domhigh*codomlow) / (codomhigh - codomlow) # regulafalsi
-							mid = if domlow < newmid < domhigh
-								newmid
-							else 
-								0.5(domlow + domhigh) # bisection
-							end
+							mid = (domlow*codomhigh - domhigh*codomlow) / (codomhigh - codomlow) # regula falsi
 						end
 					end
-				elseif index === 0
-					break
-				else
-					#@inbounds domlow, domhigh = list[index]
-					domlow, domhigh = GC.@preserve list unsafe_load(Base.unsafe_convert(Ptr{NTuple{2, F}}, pointer_from_objref(list)), index)
-					index -= 1
 				end
 			end
+			if index == 0 break end
+			@inbounds domlow, domhigh = list[index]
+			index -= 1
 		end
-        return typemax(F)
+		return typemax(F)
 	end
 end
 
-@generated function allrealrootintervalnewtonrobustregulafalsi(coeffs::NTuple{N,F}, res::MVector{M, F}) where {N, M, F <: AbstractFloat}
-    if N > M + 1; error("Storage size of result vector is too small!") end
-	if N === 1
+@generated function allrealrootintervalnewtonregulafalsi(coeffs::NTuple{N,F}, res::MVector{M, F}) where {N, M, F <: AbstractFloat}
+	if N == 1
 		return quote return 0 end
-	elseif N === 2
+	elseif N == 2
 		return quote
 			@inbounds res[1] = -coeffs[2] / coeffs[1]
             return 1
@@ -258,55 +243,48 @@ end
         end
     end
 	quote
+		$(Expr(:meta, :inline))
 		$ex
-		if mm > zero(F); mm = one(F) end
-        if MM > zero(F); MM = one(F) end
-        if mm === one(F) && MM === one(F); return 0 end
-        domlow = mm - one(F)
-        domhigh = one(F) - MM
-        list = MVector{2N+1, NTuple{2,F}}(undef)
-        counter = 0
-        index = 0
+		if mm == zero(F) && MM == zero(F) return 0 end
+		list = MVector{2N+1, NTuple{2,F}}(undef)
+		index = 0
+		domlow, domhigh = if mm < zero(F)
+			if MM < zero(F)
+				index = 1
+				@inbounds list[1] = zero(F), one(F) - MM
+			end
+			mm - one(F), zero(F)
+		else
+			zero(F), one(F) - MM
+		end
+		counter = 0
 		while true
 			#@show domlow domhigh
 			mid = 0.5(domlow + domhigh)
 			$horner
 			$intervalhorner
 			#@show mid comid codom′low codom′high
-			if codom′low < -eps(F) && codom′high > eps(F)
+			if codom′low < zero(F) < codom′high
 				leftlow, lefthigh, rightlow, righthigh = if comid > eps(F)
-					typemin(F), mid - comid / codom′high, mid - comid / codom′low, typemax(F)
+					domlow, mid - comid / codom′high, mid - comid / codom′low, domhigh
 				elseif comid < -eps(F)
-					typemin(F), mid - comid / codom′low, mid - comid / codom′high, typemax(F)
+					domlow, mid - comid / codom′low, mid - comid / codom′high, domhigh
 				else
 					counter += 1
-                    #@inbounds res[counter] = mid
-					GC.@preserve res unsafe_store!(Base.unsafe_convert(Ptr{F}, pointer_from_objref(res)), convert(F, mid), counter)
-                    if index === 0
-                        return counter
-                    else
-                        #@inbounds domlow, domhigh = list[index]
-						domlow, domhigh = GC.@preserve list unsafe_load(Base.unsafe_convert(Ptr{NTuple{2, F}}, pointer_from_objref(list)), index)
-                        index -= 1
-                    end
-                    continue
+                    @inbounds res[counter] = mid
+					zero(F), zero(F), zero(F), zero(F)
 				end
 				#@show leftlow lefthigh rightlow righthigh
-				if !(domhigh < leftlow || lefthigh < domlow)
-					if !(domhigh < rightlow || righthigh < domlow)
+				if leftlow < lefthigh
+					if rightlow < righthigh
 						index += 1
-						#@inbounds list[index] = (domlow < rightlow ? rightlow : domlow, domhigh < righthigh ? domhigh : righthigh)
-						GC.@preserve list unsafe_store!(Base.unsafe_convert(Ptr{NTuple{2, F}}, pointer_from_objref(list)), convert(NTuple{2, F}, (domlow < rightlow ? rightlow : domlow, domhigh < righthigh ? domhigh : righthigh)), index)
+						@inbounds list[index] = rightlow, righthigh
 					end
-					domlow, domhigh = domlow < leftlow ? leftlow : domlow, domhigh < lefthigh ? domhigh : lefthigh
-				elseif !(domhigh < rightlow || righthigh < domlow)
-					domlow, domhigh = domlow < rightlow ? rightlow : domlow, domhigh < righthigh ? domhigh : righthigh
-				elseif index === 0
-					return counter
-				else
-					#@inbounds domlow, domhigh = list[index]
-					domlow, domhigh = GC.@preserve list unsafe_load(Base.unsafe_convert(Ptr{NTuple{2, F}}, pointer_from_objref(list)), index)
-					index -= 1
+					domlow, domhigh = leftlow, lefthigh
+					continue
+				elseif rightlow < righthigh
+					domlow, domhigh = rightlow, righthigh
+					continue
 				end
 			else
 				$horner2
@@ -319,56 +297,30 @@ end
 						newmid = mid - delta
 						if abs(delta) < 1.0e-8abs(mid) 
 							counter += 1
-                            #@inbounds res[counter] = newmid
-							GC.@preserve res unsafe_store!(Base.unsafe_convert(Ptr{F}, pointer_from_objref(res)), convert(F, newmid), counter)
-                            if index === 0
-                                return counter
-                            else
-                                #@inbounds domlow, domhigh = list[index]
-								domlow, domhigh = GC.@preserve list unsafe_load(Base.unsafe_convert(Ptr{NTuple{2, F}}, pointer_from_objref(list)), index)
-                                index -= 1
-                            end
+                            @inbounds res[counter] = newmid
                             break
 						elseif domlow < newmid < domhigh
 							mid = newmid
 						else
-							if comid * codomlow > -eps(F)
-								domlow = mid
-								codomlow = comid
-							elseif comid * codomhigh > -eps(F)
-								domhigh = mid
-								codomhigh = comid
+							if comid * codomlow > eps(F)
+								domlow, codomlow = mid, comid
+							elseif comid * codomhigh > eps(F)
+								domhigh, codomhigh = mid, comid
 							else
 								counter += 1
-                                #@inbounds res[counter] = mid
-								GC.@preserve res unsafe_store!(Base.unsafe_convert(Ptr{F}, pointer_from_objref(res)), convert(F, mid), counter)
-                                if index === 0
-                                    return counter
-                                else
-                                    #@inbounds domlow, domhigh = list[index]
-									domlow, domhigh = GC.@preserve list unsafe_load(Base.unsafe_convert(Ptr{NTuple{2, F}}, pointer_from_objref(list)), index)
-                                    index -= 1
-                                end
+                                @inbounds res[counter] = mid
                                 break
 							end
-							newmid = (domlow*codomhigh - domhigh*codomlow) / (codomhigh - codomlow) # regulafalsi
-							mid = if domlow < newmid < domhigh
-								newmid
-							else 
-								0.5(domlow + domhigh) # bisection
-							end
+							mid = (domlow*codomhigh - domhigh*codomlow) / (codomhigh - codomlow) # regula falsi
 						end
 					end
-				elseif index === 0
-					return counter
-				else
-					#@inbounds domlow, domhigh = list[index]
-					domlow, domhigh = GC.@preserve list unsafe_load(Base.unsafe_convert(Ptr{NTuple{2, F}}, pointer_from_objref(list)), index)
-					index -= 1
 				end
 			end
+			if index == 0 break end
+			@inbounds domlow, domhigh = list[index]
+			index -= 1
 		end
-        return 0
+		return counter
 	end
 end
 
@@ -377,34 +329,41 @@ using BenchmarkTools
 using ProgressMeter
 using UnicodePlots
 
-let N = 100
-	for n in 3:15
-		#Random.seed!(150)
+let N = 1000
+	for n in 3:9
+		Random.seed!(150)
 		times = Vector{Float64}(undef, N)
 		res = MVector{n-1, Float64}(undef)
-		@showprogress for i = 1:N
-			p = tuple((2(rand(n) .- 0.5))...)
-			times[i] = 1000000000 * @belapsed allrealrootintervalnewtonrobustregulafalsi($p, $res)
+		open("polynomials$n.txt", "r") do io
+			@showprogress for i = 1:N
+				str = readline(io)
+				p = tuple(parse.(Float64, split(str))...)
+				times[i] = 1000000000 * @belapsed allrealrootintervalnewtonregulafalsi($p, $res) samples=10000 evals=1000
+			end
 		end
 		show(histogram(times))
 		println()
 		println(n, '\t', minimum(times), '\t', sum(times)/ N, '\t', maximum(times), '\t', sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
 		open("out1.txt", "a") do io
-			println(io, n, ";", minimum(times), ";", sum(times)/ N, ";", maximum(times), ";", sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
+			println(io, n, "\t", minimum(times), "\t", sum(times)/ N, "\t", maximum(times), "\t", sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
 		end
 	end
-	for n in 3:15
-        #Random.seed!(150)
+	for n in 3:9
+        Random.seed!(150)
 		times = Vector{Float64}(undef, N)
-        @showprogress for i = 1:N
-            p = tuple((2(rand(n) .- 0.5))...)
-            times[i] = 1000000000 * @belapsed smallestpositiverootintervalnewtonrobustregulafalsi($p)
+		open("polynomials$n.txt", "r") do io
+			@showprogress for i = 1:N
+				str = readline(io)
+				p = tuple(parse.(Float64, split(str))...)
+            	times[i] = 1000000000 * @belapsed smallestpositiverootintervalnewtonregulafalsi($p) samples=10000 evals=1000
+			end
         end
 		show(histogram(times))
 		println()
         println(n, '\t', minimum(times), '\t', sum(times)/ N, '\t', maximum(times), '\t', sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
 		open("out1.txt", "a") do io
-			println(io, n, ";", minimum(times), ";", sum(times)/ N, ";", maximum(times), ";", sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
+			println(io, n, "\t", minimum(times), "\t", sum(times)/ N, "\t", maximum(times), "\t", sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
 		end
     end
 end
+

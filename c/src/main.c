@@ -45,14 +45,14 @@ double stddev(size_t const N, double const values[N]) {
 
 int main(void) {
     int const N = 10000;
-    int const S = 100;
+    int const S = 1000;
 
     double times[N];
     double res;
 
     double bench[S];
-    /*
-    double benchlib[100];
+    
+    /*double benchlib[100];
     for (size_t k = 0; k < S; ++k) {
         double const coeffs[6]= {
             2.0 * (double) rand() / (double) RAND_MAX - 1.0,
@@ -98,11 +98,21 @@ int main(void) {
     printf("%i %16f %16f %16f %16f\n", 6, minval(100, benchlib), average(100, benchlib), maxval(100, benchlib), stddev(100, benchlib));
     printf("%i %16f %16f %16f %16f\n", 6, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));*/
     
+    FILE* myfile = fopen("../examples/polynomials3.txt", "r");
+    double var0;
+    double var1;
+    double var2;
     for (size_t k = 0; k < S; ++k) {
-        double const coeffs[3]= {//
+        /*double const coeffs[3]= {//
             2.0 * (double) rand() / (double) RAND_MAX - 1.0,
             2.0 * (double) rand() / (double) RAND_MAX - 1.0,
             2.0 * (double) rand() / (double) RAND_MAX - 1.0,
+        };*/
+        fscanf(myfile, "%lf", &var0);
+        fscanf(myfile, "%lf", &var1);
+        fscanf(myfile, "%lf", &var2);
+        double const coeffs[3]= {
+            var0, var1, var2
         };
         double r[3];
         for (size_t i = 0; i < N; ++i) {
@@ -115,14 +125,21 @@ int main(void) {
         }
         bench[k] = minval(N, times);
     }
+    fclose(myfile);
     printf("%i %16f %16f %16f %16f\n", 3, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    myfile = fopen("out.txt", "a");
+    fprintf(myfile, "%i %16f %16f %16f %16f\n", 3, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    fclose(myfile);
 
+    myfile = fopen("../examples/polynomials4.txt", "r");
+    double var3;
     for (size_t k = 0; k < S; ++k) {
-        double const coeffs[4]= {//
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
+        fscanf(myfile, "%lf", &var0);
+        fscanf(myfile, "%lf", &var1);
+        fscanf(myfile, "%lf", &var2);
+        fscanf(myfile, "%lf", &var3);
+        double const coeffs[4]= {
+            var0, var1, var2, var3
         };
         double r[4];
         for (size_t i = 0; i < N; ++i) {
@@ -135,15 +152,22 @@ int main(void) {
         }
         bench[k] = minval(N, times);
     }
+    fclose(myfile);
     printf("%i %16f %16f %16f %16f\n", 4, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    myfile = fopen("out.txt", "a");
+    fprintf(myfile, "%i %16f %16f %16f %16f\n", 4, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    fclose(myfile);
 
+    myfile = fopen("../examples/polynomials5.txt", "r");
+    double var4;
     for (size_t k = 0; k < S; ++k) {
-        double const coeffs[5]= {//
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
+        fscanf(myfile, "%lf", &var0);
+        fscanf(myfile, "%lf", &var1);
+        fscanf(myfile, "%lf", &var2);
+        fscanf(myfile, "%lf", &var3);
+        fscanf(myfile, "%lf", &var4);
+        double const coeffs[5]= {
+            var0, var1, var2, var3, var4
         };
         double r[5];
         for (size_t i = 0; i < N; ++i) {
@@ -156,16 +180,23 @@ int main(void) {
         }
         bench[k] = minval(N, times);
     }
+    fclose(myfile);
     printf("%i %16f %16f %16f %16f\n", 5, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    myfile = fopen("out.txt", "a");
+    fprintf(myfile, "%i %16f %16f %16f %16f\n", 5, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    fclose(myfile);
 
+    myfile = fopen("../examples/polynomials6.txt", "r");
+    double var5;
     for (size_t k = 0; k < S; ++k) {
-        double const coeffs[6]= {//
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
+        fscanf(myfile, "%lf", &var0);
+        fscanf(myfile, "%lf", &var1);
+        fscanf(myfile, "%lf", &var2);
+        fscanf(myfile, "%lf", &var3);
+        fscanf(myfile, "%lf", &var4);
+        fscanf(myfile, "%lf", &var5);
+        double const coeffs[6]= {
+            var0, var1, var2, var3, var4, var5
         };
         double r[6];
         for (size_t i = 0; i < N; ++i) {
@@ -178,17 +209,24 @@ int main(void) {
         }
         bench[k] = minval(N, times);
     }
+    fclose(myfile);
     printf("%i %16f %16f %16f %16f\n", 6, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    myfile = fopen("out.txt", "a");
+    fprintf(myfile, "%i %16f %16f %16f %16f\n", 6, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    fclose(myfile);
 
+    myfile = fopen("../examples/polynomials7.txt", "r");
+    double var6;
     for (size_t k = 0; k < S; ++k) {
-        double const coeffs[7]= {//
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
+        fscanf(myfile, "%lf", &var0);
+        fscanf(myfile, "%lf", &var1);
+        fscanf(myfile, "%lf", &var2);
+        fscanf(myfile, "%lf", &var3);
+        fscanf(myfile, "%lf", &var4);
+        fscanf(myfile, "%lf", &var5);
+        fscanf(myfile, "%lf", &var6);
+        double const coeffs[7]= {
+            var0, var1, var2, var3, var4, var5, var6
         };
         double r[7];
         for (size_t i = 0; i < N; ++i) {
@@ -201,18 +239,25 @@ int main(void) {
         }
         bench[k] = minval(N, times);
     }
+    fclose(myfile);
     printf("%i %16f %16f %16f %16f\n", 7, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    myfile = fopen("out.txt", "a");
+    fprintf(myfile, "%i %16f %16f %16f %16f\n", 7, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    fclose(myfile);
 
+    myfile = fopen("../examples/polynomials8.txt", "r");
+    double var7;
     for (size_t k = 0; k < S; ++k) {
-        double const coeffs[8]= {//
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
+        fscanf(myfile, "%lf", &var0);
+        fscanf(myfile, "%lf", &var1);
+        fscanf(myfile, "%lf", &var2);
+        fscanf(myfile, "%lf", &var3);
+        fscanf(myfile, "%lf", &var4);
+        fscanf(myfile, "%lf", &var5);
+        fscanf(myfile, "%lf", &var6);
+        fscanf(myfile, "%lf", &var7);
+        double const coeffs[8]= {
+            var0, var1, var2, var3, var4, var5, var6, var7
         };
         double r[8];
         for (size_t i = 0; i < N; ++i) {
@@ -225,19 +270,26 @@ int main(void) {
         }
         bench[k] = minval(N, times);
     }
+    fclose(myfile);
     printf("%i %16f %16f %16f %16f\n", 8, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    myfile = fopen("out.txt", "a");
+    fprintf(myfile, "%i %16f %16f %16f %16f\n", 8, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    fclose(myfile);
 
+    myfile = fopen("../examples/polynomials9.txt", "r");
+    double var8;
     for (size_t k = 0; k < S; ++k) {
-        double const coeffs[9]= {//
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
+        fscanf(myfile, "%lf", &var0);
+        fscanf(myfile, "%lf", &var1);
+        fscanf(myfile, "%lf", &var2);
+        fscanf(myfile, "%lf", &var3);
+        fscanf(myfile, "%lf", &var4);
+        fscanf(myfile, "%lf", &var5);
+        fscanf(myfile, "%lf", &var6);
+        fscanf(myfile, "%lf", &var7);
+        fscanf(myfile, "%lf", &var8);
+        double const coeffs[9]= {
+            var0, var1, var2, var3, var4, var5, var6, var7, var8
         };
         double r[9];
         for (size_t i = 0; i < N; ++i) {
@@ -250,13 +302,24 @@ int main(void) {
         }
         bench[k] = minval(N, times);
     }
+    fclose(myfile);
     printf("%i %16f %16f %16f %16f\n", 9, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    myfile = fopen("out.txt", "a");
+    fprintf(myfile, "%i %16f %16f %16f %16f\n", 9, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    fclose(myfile);
 
+    myfile = fopen("../examples/polynomials3.txt", "r");
     for (size_t k = 0; k < S; ++k) {
+        /*double const coeffs[3]= {//
+            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
+            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
+            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
+        };*/
+        fscanf(myfile, "%lf", &var0);
+        fscanf(myfile, "%lf", &var1);
+        fscanf(myfile, "%lf", &var2);
         double const coeffs[3]= {
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
+            var0, var1, var2
         };
         for (size_t i = 0; i < N; ++i) {
             clock_t start = clock();
@@ -268,14 +331,20 @@ int main(void) {
         }
         bench[k] = minval(N, times);
     }
+    fclose(myfile);
     printf("%i %16f %16f %16f %16f\n", 3, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    myfile = fopen("out.txt", "a");
+    fprintf(myfile, "%i %16f %16f %16f %16f\n", 3, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    fclose(myfile);
 
+    myfile = fopen("../examples/polynomials4.txt", "r");
     for (size_t k = 0; k < S; ++k) {
+        fscanf(myfile, "%lf", &var0);
+        fscanf(myfile, "%lf", &var1);
+        fscanf(myfile, "%lf", &var2);
+        fscanf(myfile, "%lf", &var3);
         double const coeffs[4]= {
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
+            var0, var1, var2, var3
         };
         for (size_t i = 0; i < N; ++i) {
             clock_t start = clock();
@@ -287,15 +356,21 @@ int main(void) {
         }
         bench[k] = minval(N, times);
     }
+    fclose(myfile);
     printf("%i %16f %16f %16f %16f\n", 4, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    myfile = fopen("out.txt", "a");
+    fprintf(myfile, "%i %16f %16f %16f %16f\n", 4, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    fclose(myfile);
 
+    myfile = fopen("../examples/polynomials5.txt", "r");
     for (size_t k = 0; k < S; ++k) {
+        fscanf(myfile, "%lf", &var0);
+        fscanf(myfile, "%lf", &var1);
+        fscanf(myfile, "%lf", &var2);
+        fscanf(myfile, "%lf", &var3);
+        fscanf(myfile, "%lf", &var4);
         double const coeffs[5]= {
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
+            var0, var1, var2, var3, var4
         };
         for (size_t i = 0; i < N; ++i) {
             clock_t start = clock();
@@ -307,16 +382,22 @@ int main(void) {
         }
         bench[k] = minval(N, times);
     }
+    fclose(myfile);
     printf("%i %16f %16f %16f %16f\n", 5, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    myfile = fopen("out.txt", "a");
+    fprintf(myfile, "%i %16f %16f %16f %16f\n", 5, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    fclose(myfile);
 
+    myfile = fopen("../examples/polynomials6.txt", "r");
     for (size_t k = 0; k < S; ++k) {
+        fscanf(myfile, "%lf", &var0);
+        fscanf(myfile, "%lf", &var1);
+        fscanf(myfile, "%lf", &var2);
+        fscanf(myfile, "%lf", &var3);
+        fscanf(myfile, "%lf", &var4);
+        fscanf(myfile, "%lf", &var5);
         double const coeffs[6]= {
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
+            var0, var1, var2, var3, var4, var5
         };
         for (size_t i = 0; i < N; ++i) {
             clock_t start = clock();
@@ -328,17 +409,23 @@ int main(void) {
         }
         bench[k] = minval(N, times);
     }
+    fclose(myfile);
     printf("%i %16f %16f %16f %16f\n", 6, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    myfile = fopen("out.txt", "a");
+    fprintf(myfile, "%i %16f %16f %16f %16f\n", 6, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    fclose(myfile);
 
+    myfile = fopen("../examples/polynomials7.txt", "r");
     for (size_t k = 0; k < S; ++k) {
+        fscanf(myfile, "%lf", &var0);
+        fscanf(myfile, "%lf", &var1);
+        fscanf(myfile, "%lf", &var2);
+        fscanf(myfile, "%lf", &var3);
+        fscanf(myfile, "%lf", &var4);
+        fscanf(myfile, "%lf", &var5);
+        fscanf(myfile, "%lf", &var6);
         double const coeffs[7]= {
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
+            var0, var1, var2, var3, var4, var5, var6
         };
         for (size_t i = 0; i < N; ++i) {
             clock_t start = clock();
@@ -350,18 +437,24 @@ int main(void) {
         }
         bench[k] = minval(N, times);
     }
+    fclose(myfile);
     printf("%i %16f %16f %16f %16f\n", 7, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    myfile = fopen("out.txt", "a");
+    fprintf(myfile, "%i %16f %16f %16f %16f\n", 7, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    fclose(myfile);
 
+    myfile = fopen("../examples/polynomials8.txt", "r");
     for (size_t k = 0; k < S; ++k) {
+        fscanf(myfile, "%lf", &var0);
+        fscanf(myfile, "%lf", &var1);
+        fscanf(myfile, "%lf", &var2);
+        fscanf(myfile, "%lf", &var3);
+        fscanf(myfile, "%lf", &var4);
+        fscanf(myfile, "%lf", &var5);
+        fscanf(myfile, "%lf", &var6);
+        fscanf(myfile, "%lf", &var7);
         double const coeffs[8]= {
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
+            var0, var1, var2, var3, var4, var5, var6, var7
         };
         for (size_t i = 0; i < N; ++i) {
             clock_t start = clock();
@@ -373,19 +466,25 @@ int main(void) {
         }
         bench[k] = minval(N, times);
     }
+    fclose(myfile);
     printf("%i %16f %16f %16f %16f\n", 8, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    myfile = fopen("out.txt", "a");
+    fprintf(myfile, "%i %16f %16f %16f %16f\n", 8, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    fclose(myfile);
 
+    myfile = fopen("../examples/polynomials9.txt", "r");
     for (size_t k = 0; k < S; ++k) {
+        fscanf(myfile, "%lf", &var0);
+        fscanf(myfile, "%lf", &var1);
+        fscanf(myfile, "%lf", &var2);
+        fscanf(myfile, "%lf", &var3);
+        fscanf(myfile, "%lf", &var4);
+        fscanf(myfile, "%lf", &var5);
+        fscanf(myfile, "%lf", &var6);
+        fscanf(myfile, "%lf", &var7);
+        fscanf(myfile, "%lf", &var8);
         double const coeffs[9]= {
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
-            2.0 * (double) rand() / (double) RAND_MAX - 1.0,
+            var0, var1, var2, var3, var4, var5, var6, var7, var8
         };
         for (size_t i = 0; i < N; ++i) {
             clock_t start = clock();
@@ -397,8 +496,11 @@ int main(void) {
         }
         bench[k] = minval(N, times);
     }
+    fclose(myfile);
     printf("%i %16f %16f %16f %16f\n", 9, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
-
-
+    myfile = fopen("out.txt", "a");
+    fprintf(myfile, "%i %16f %16f %16f %16f\n", 9, minval(100, bench), average(100, bench), maxval(100, bench), stddev(100, bench));
+    fclose(myfile);
+    
     return EXIT_SUCCESS;
 }

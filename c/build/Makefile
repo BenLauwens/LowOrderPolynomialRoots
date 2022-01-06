@@ -4,9 +4,9 @@ EXE = fcsprp
 
 CC = icc -xHost -O3 -std=c11 -fast -I/usr/local/lib -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
 CC = gcc -march=native -O3 -flto -Wall -std=c17
-CC = clang -march=native -O3 -flto -Wall -std=c17
+#CC = clang -march=native -O3 -flto -Wall -std=c17
 
-INCLUDE = #-lgsl
+INCLUDE = -lgsl -lgslcblas -lm
 
 VPATH = ../src
 

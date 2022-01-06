@@ -3,7 +3,7 @@
 EXE = fcsprp
 
 F95 = ifort -O3 -xHost -fast -warn -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
-F95 = gfortran -march=native -O3 -flto -Wall -fstack-arrays
+F95 = gfortran -O3 -march=native -flto -Wall -fstack-arrays
 
 VPATH = ../src
 
