@@ -1,10 +1,10 @@
 for n in 2:20
 	name = Symbol("StackArray", n)
     eval(quote
-		primitive type $name{F} $(64n) end
+		primitive type $name{F} $(32n) end
 		@inline $name{F}() where F<:AbstractFloat = Base.zext_int($name{F}, 0x00)
-		@inline push(arr::$name{F}, val::F) where F<:AbstractFloat = Base.or_int(Base.shl_int(arr, 64), Base.zext_int($name{F}, val))
-		@inline pop(arr::$name{F}) where F<:AbstractFloat = Base.lshr_int(arr, 64), reinterpret(F, Base.trunc_int(UInt64, arr))
+		@inline push(arr::$name{F}, val::F) where F<:AbstractFloat = Base.or_int(Base.shl_int(arr, 32), Base.lshr_int(Base.zext_int($name{F}, val), 32))
+		@inline pop(arr::$name{F}) where F<:AbstractFloat = Base.lshr_int(arr, 32), reinterpret(F, Base.shl_int(Base.trunc_int(UInt64, arr), 32))
 	end)
 end
 
@@ -86,7 +86,7 @@ end
             comid′, comid = muladd(mid, comid′, comid), muladd(mid, comid, $(syms[i]))
         end
     end
-	S = (0, 0, 2, 7, 7, 9, 9, 10, 12, 13)
+	S = (0, 0, 3, 7, 7, 10, 10, 11, 12, 13)
 	name = Symbol("StackArray", S[N])
 	quote
 		$(Expr(:meta, :inline))
@@ -346,7 +346,7 @@ let N = 1000
 		show(histogram(times))
 		println()
 		println(n, '\t', minimum(times), '\t', sum(times)/ N, '\t', maximum(times), '\t', sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
-		open("out3.txt", "a") do io
+		open("out0.txt", "a") do io
 			println(io, n, "\t", minimum(times), "\t", sum(times)/ N, "\t", maximum(times), "\t", sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
 		end
 	end==#
@@ -361,7 +361,7 @@ let N = 1000
 		show(histogram(times))
 		println()
         println(n, '\t', minimum(times), '\t', sum(times)/ N, '\t', maximum(times), '\t', sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
-		open("out3s.txt", "a") do io
+		open("out0.txt", "a") do io
 			println(io, n, "\t", minimum(times), "\t", sum(times)/ N, "\t", maximum(times), "\t", sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
 		end
     end

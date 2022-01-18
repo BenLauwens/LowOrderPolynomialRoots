@@ -66,17 +66,16 @@ static inline void posintervalhorner(size_t const N, double const coeffs[N], dou
     double coh = col;
     double tmp;
     for (size_t i = 1; i < N; ++i) {
-        if (col > -DBL_EPSILON) {
-            tmp = fma(col, low, coeffs[i]); //col * low + coeffs[i];
+        if (col > 0) {
+            col = fma(col, low, coeffs[i]); //col * low + coeffs[i];
             coh = fma(coh, high, coeffs[i]); //coh * high + coeffs[i];
-        } else if (coh < DBL_EPSILON) {
-            tmp = fma(col, high, coeffs[i]); //col * high + coeffs[i];
+        } else if (coh < 0) {
+            col = fma(col, high, coeffs[i]); //col * high + coeffs[i];
             coh = fma(coh, low, coeffs[i]); //coh * low + coeffs[i];
         } else {
-            tmp = fma(col, high, coeffs[i]); //col * high + coeffs[i];
+            col = fma(col, high, coeffs[i]); //col * high + coeffs[i];
             coh = fma(coh, high, coeffs[i]); //coh * high + coeffs[i];
         }
-        col = tmp;
     }
     *colow = col;
     *cohigh = coh;
@@ -94,26 +93,12 @@ static inline void intervalhorner(size_t const N, double const coeffs[N], double
     double col = coeffs[0];
     double coh = col;
     double tmp;
-    if (low > -DBL_EPSILON) {
+    if (low < 0.0) {
         for (size_t i = 1; i < N; ++i) {
-            if (col > DBL_EPSILON) {
-                tmp = fma(col, low, coeffs[i]);
-                coh = fma(coh, high, coeffs[i]);
-            } else if (coh < -DBL_EPSILON) {
-                tmp = fma(col, high, coeffs[i]);
-                coh = fma(coh, low, coeffs[i]);
-            } else {
-                tmp = fma(col, high, coeffs[i]);
-                coh = fma(coh, high, coeffs[i]); 
-            }
-            col = tmp;
-        }
-    } else {
-        for (size_t i = 1; i < N; ++i) {
-            if (col > DBL_EPSILON) {
+            if (col > 0.0) {
                 tmp = fma(coh, low, coeffs[i]); 
                 coh = fma(col, high, coeffs[i]);
-            } else if (coh < -DBL_EPSILON) {
+            } else if (coh < 0.0) {
                 tmp = fma(coh, high, coeffs[i]);
                 coh = fma(col, low, coeffs[i]);
             } else {
@@ -121,6 +106,19 @@ static inline void intervalhorner(size_t const N, double const coeffs[N], double
                 coh = fma(col, low, coeffs[i]);   
             }
             col = tmp;
+        }
+    } else {
+        for (size_t i = 1; i < N; ++i) {
+            if (col > 0.0) {
+                col = fma(col, low, coeffs[i]);
+                coh = fma(coh, high, coeffs[i]);
+            } else if (coh < 0.0) {
+                col = fma(col, high, coeffs[i]);
+                coh = fma(coh, low, coeffs[i]);
+            } else {
+                col = fma(col, high, coeffs[i]);
+                coh = fma(coh, high, coeffs[i]); 
+            }
         }
     }
     *colow = col;

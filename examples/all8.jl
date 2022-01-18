@@ -1,5 +1,3 @@
-using StaticArrays
-
 @inline function smallest(args::NTuple{N,F}) where {N, F <: AbstractFloat}
 	@inbounds m = args[1]
 	for i in 2:N
@@ -20,7 +18,7 @@ end
 
 @inline function horner2(x::F, y::F, coeffs::NTuple{N,F}) where {N, F <: AbstractFloat}
 	@inbounds v = coeffs[1]
-	@inbounds w = coeffs[1]
+	w = v
 	for i in 2:N
 		@inbounds coeff = coeffs[i]
 		v = muladd(x, v, coeff)
@@ -42,41 +40,41 @@ end
 
 @inline function intervalhorner(low::F, high::F, coeffs::NTuple{N,F}) where {N, F <: AbstractFloat}
 	@inbounds colow = coeffs[1]
-	@inbounds cohigh = coeffs[1]
-	if low > -eps(F)
+	cohigh = colow
+	if low < zero(F)
 		for i in 2:N
 			@inbounds coeff = coeffs[i]
-			colow, cohigh = if colow > eps(F)
-				muladd(low, colow, coeff), muladd(high, cohigh, coeff)
-			elseif cohigh < -eps(F)
-				muladd(high, colow, coeff), muladd(low, cohigh, coeff)
-			else
-				muladd(high, colow, coeff), muladd(high, cohigh, coeff)
-			end
-		end	
-	else
-		for i in 2:N
-			@inbounds coeff = coeffs[i]
-			colow, cohigh = if colow > eps(F)
+			colow, cohigh = if colow > zero(F)
 				muladd(low, cohigh, coeff), muladd(high, colow, coeff)
-			elseif cohigh < -eps(F)
+			elseif cohigh < zero(F)
 				muladd(high, cohigh, coeff), muladd(low, colow, coeff)
 			else
 				muladd(low, cohigh, coeff), muladd(low, colow, coeff)
 			end
 		end
+	else
+		for i in 2:N
+			@inbounds coeff = coeffs[i]
+			colow, cohigh = if colow > zero(F)
+				muladd(low, colow, coeff), muladd(high, cohigh, coeff)
+			elseif cohigh < zero(F)
+				muladd(high, colow, coeff), muladd(low, cohigh, coeff)
+			else
+				muladd(high, colow, coeff), muladd(high, cohigh, coeff)
+			end
+		end	
 	end
     colow, cohigh
 end
 
 @inline function posintervalhorner(low::F, high::F, coeffs::NTuple{N,F}) where {N, F <: AbstractFloat}
 	@inbounds colow = coeffs[1]
-	@inbounds cohigh = coeffs[1]
+	cohigh = colow
 	for i in 2:N
 		@inbounds coeff = coeffs[i]
-		colow, cohigh = if colow > eps(F)
+		colow, cohigh = if colow > zero(F)
 			muladd(low, colow, coeff), muladd(high, cohigh, coeff)
-		elseif cohigh < -eps(F)
+		elseif cohigh < zero(F)
 			muladd(high, colow, coeff), muladd(low, cohigh, coeff)
 		else
 			muladd(high, colow, coeff), muladd(high, cohigh, coeff)
@@ -85,7 +83,7 @@ end
 	colow, cohigh
 end
 
-@inline function smallestpositiverootintervalnewtonregulafalsi(coeffs::NTuple{N,F}) where {N, F <: AbstractFloat}
+function smallestpositiverootintervalnewtonregulafalsi(coeffs::NTuple{N,F}, lows::Ptr{F}, highs::Ptr{F}) where {N, F <: AbstractFloat}
 	if N == 1
 		return typemax(F)
 	elseif N == 2
@@ -106,7 +104,6 @@ end
 	MM = smallest(poly)
 	if MM > zero(F) return typemax(F) end
 	domlow, domhigh = zero(F), one(F) - MM
-	list = MVector{2N+1, NTuple{2,F}}(undef)
 	index = 0
     while true
 		#@show domlow domhigh
@@ -115,18 +112,17 @@ end
 		codom′low, codom′high = posintervalhorner(domlow, domhigh, poly′)
 		#@show comid codom′low codom′high
 		if codom′low < zero(F) < codom′high
-			leftlow, lefthigh, rightlow, righthigh = if comid > eps(F)
-				domlow, mid - comid / codom′high, mid - comid / codom′low, domhigh
-			elseif comid < -eps(F)
+			leftlow, lefthigh, rightlow, righthigh = if comid < zero(F)
 				domlow, mid - comid / codom′low, mid - comid / codom′high, domhigh
 			else
-				return mid
+				domlow, mid - comid / codom′high, mid - comid / codom′low, domhigh
 			end
 			#@show leftlow lefthigh rightlow righthigh
 			if leftlow < lefthigh
 				if rightlow < righthigh
 					index += 1
-					@inbounds list[index] = rightlow, righthigh
+					unsafe_store!(lows, rightlow, index)
+					unsafe_store!(highs, righthigh, index)
 				end
 				domlow, domhigh = leftlow, lefthigh
 				continue
@@ -137,7 +133,7 @@ end
 		else
 			codomlow, codomhigh = horner2(domlow, domhigh, poly)
 			#@show domlow domhigh codomlow codomhigh
-			if codomlow * codomhigh < eps(F)
+			if codomlow * codomhigh < zero(F)
 				while true
 					comid, comid′ = hornerd(mid, poly)
 					delta = comid / comid′
@@ -147,12 +143,10 @@ end
 					elseif domlow < newmid < domhigh
 						mid = newmid
 					else
-						if comid * codomlow > -eps(F)
-							domlow, codomlow = mid, comid
-						elseif comid * codomhigh > -eps(F)
+						if comid * codomlow < zero(F)
 							domhigh, codomhigh = mid, comid
 						else
-							return mid
+							domlow, codomlow = mid, comid
 						end
 						mid = (domlow*codomhigh - domhigh*codomlow) / (codomhigh - codomlow) # regula falsi
 					end
@@ -160,13 +154,14 @@ end
 			end
 		end
 		if index == 0 break end
-		@inbounds domlow, domhigh = list[index]
+		domlow = unsafe_load(lows, index)
+		domhigh = unsafe_load(highs, index)
 		index -= 1
 	end
 	return typemax(F)
 end
 
-@inline function allrealrootintervalnewtonregulafalsi(coeffs::NTuple{N,F}, res::MVector{M, F}) where {N, M, F <: AbstractFloat}
+function allrealrootintervalnewtonregulafalsi(coeffs::NTuple{N,F}, res::Ptr{F}, lows::Ptr{F}, highs::Ptr{F}) where {N, F <: AbstractFloat}
 	if N == 1
 		return 0
 	elseif N == 2
@@ -191,12 +186,12 @@ end
 		s = -s
 	end
 	if mm == zero(F) && MM == zero(F) return 0 end
-	list = MVector{2N+1, NTuple{2,F}}(undef)
 	index = 0
 	domlow, domhigh = if mm < zero(F)
 		if MM < zero(F)
 			index = 1
-			list[index] = zero(F), one(F) - MM
+			unsafe_store!(lows, zero(F), 1)
+			unsafe_store!(highs, one(F) - MM, 1)
 		end
 		mm - one(F), zero(F)
 	else
@@ -210,20 +205,17 @@ end
 		codom′low, codom′high = intervalhorner(domlow, domhigh, poly′)
 		#@show mid comid codom′low codom′high
 		if codom′low < zero(F) < codom′high
-			leftlow, lefthigh, rightlow, righthigh = if comid > eps(F)
-				domlow, mid - comid / codom′high, mid - comid / codom′low, domhigh
-			elseif comid < -eps(F)
+			leftlow, lefthigh, rightlow, righthigh = if comid < zero(F)
 				domlow, mid - comid / codom′low, mid - comid / codom′high, domhigh
 			else
-                counter += 1
-				@inbounds res[counter] = mid
-				zero(F), zero(F), zero(F), zero(F)
+				domlow, mid - comid / codom′high, mid - comid / codom′low, domhigh
 			end
 			#@show leftlow lefthigh rightlow righthigh
 			if leftlow < lefthigh
 				if rightlow < righthigh
 					index += 1
-					@inbounds list[index] = rightlow, righthigh
+					unsafe_store!(lows, rightlow, index)
+					unsafe_store!(highs, righthigh, index)
 				end
 				domlow, domhigh = leftlow, lefthigh
 				continue
@@ -234,7 +226,7 @@ end
 		else
 			codomlow, codomhigh = horner2(domlow, domhigh, poly)
             #@show domlow domhigh codomlow codomhigh
-			if codomlow * codomhigh < eps(F)
+			if codomlow * codomhigh < zero(F)
 				while true
 					comid, comid′ = hornerd(mid, poly)
 					delta = comid / comid′
@@ -242,47 +234,44 @@ end
 					newmid = mid - delta
 					if abs(delta) < 1.0e-8abs(mid) 
 						counter += 1
-                        @inbounds res[counter] = newmid
+                        unsafe_store!(res, newmid, counter)
                         break
 					elseif domlow < newmid < domhigh
 						mid = newmid
 					else
-						if comid * codomlow > -eps(F)
-							domlow, codomlow = mid, comid
-						elseif comid * codomhigh > -eps(F)
+						if comid * codomlow < zero(F)
 							domhigh, codomhigh = mid, comid
 						else
-							counter += 1
-                            @inbounds res[counter] = mid
-                            break
+							domlow, codomlow = mid, comid
 						end
 						mid = (domlow*codomhigh - domhigh*codomlow) / (codomhigh - codomlow) # regula falsi
 					end
 				end
 			end
 		end
-		if index == 0 break end
-		@inbounds domlow, domhigh = list[index]
+		if index == 0 || counter == N-1 break end
+		domlow = unsafe_load(lows, index)
+		domhigh = unsafe_load(highs, index)
 		index -= 1
 	end
 	return counter
 end
 
-using Random
 using BenchmarkTools
 using ProgressMeter
 using UnicodePlots
 
 let N = 1000
+	times = Vector{Float64}(undef, N)
 	for n in 3:9
-		Random.seed!(150)
-		times = Vector{Float64}(undef, N)
-		res = MVector{n-1, Float64}(undef)
+		res = pointer(Vector{Float64}(undef, n-1))
+		lows = pointer(Vector{Float64}(undef, 2n+1))
+		highs = pointer(Vector{Float64}(undef, 2n+1))
 		open("polynomials$n.txt", "r") do io
 			@showprogress for i = 1:N
 				str = readline(io)
 				p = tuple(parse.(Float64, split(str))...)
-				times[i] = 1000000000 * @belapsed allrealrootintervalnewtonregulafalsi($p, $res) samples=10000 evals=1000
+				times[i] = 1000000000 * @belapsed allrealrootintervalnewtonregulafalsi($p, $res, $lows, $highs) samples=10000 evals=1000
 			end
 		end
 		show(histogram(times))
@@ -293,13 +282,13 @@ let N = 1000
 		end
 	end
 	for n in 3:9
-        Random.seed!(150)
-		times = Vector{Float64}(undef, N)
+		lows = pointer(Vector{Float64}(undef, 2n+1))
+		highs = pointer(Vector{Float64}(undef, 2n+1))
 		open("polynomials$n.txt", "r") do io
 			@showprogress for i = 1:N
 				str = readline(io)
 				p = tuple(parse.(Float64, split(str))...)
-            	times[i] = 1000000000 * @belapsed smallestpositiverootintervalnewtonregulafalsi($p) samples=10000 evals=1000
+            	times[i] = 1000000000 * @belapsed smallestpositiverootintervalnewtonregulafalsi($p, $lows, $highs) samples=10000 evals=1000
 			end
         end
 		show(histogram(times))

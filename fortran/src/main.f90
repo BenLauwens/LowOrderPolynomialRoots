@@ -10,17 +10,19 @@ program main
     integer :: i, j, k, l
     integer, parameter :: N = 10000
     integer, parameter :: S = 1000
+    character(len=20) :: ch
     real(kind=REAL64), dimension(:), allocatable :: out
 
     allocate(times(N))
 
     allocate(bench(S))
     do l = 3, 9
+        write(ch, *) l
+        open(150, file='../examples/polynomials'//trim(adjustl(ch))//'.txt', action = 'read')
         allocate(poly(l))
         allocate(out(l-1))
         do k = 1, S
-            call random_number(poly)
-            poly = 2.0D0 * poly - 1.0
+            read(150, *) poly
             do i = 1, N
                 call cpu_time(start)
                 do j = 1, 1000
@@ -33,14 +35,19 @@ program main
         end do
         deallocate(out)
         deallocate(poly)
-        print *, l, minval(bench), sum(bench) / S, maxval(bench), sqrt((sum(bench**2)-sum(bench)**2/S)/(S-1))
+        close(150)
+        write(*, *) l, minval(bench), sum(bench) / S, maxval(bench), sqrt((sum(bench**2)-sum(bench)**2/S)/(S-1))
+        open(150, file='out.txt', action='write', position='append')
+        write(150, *) l, minval(bench), sum(bench) / S, maxval(bench), sqrt((sum(bench**2)-sum(bench)**2/S)/(S-1))
+        close(150)
     end do
 
     do l = 3, 9
+        write(ch, *) l
+        open(150, file='../examples/polynomials'//trim(adjustl(ch))//'.txt', action = 'read')
         allocate(poly(l))
         do k = 1, S
-2           call random_number(poly)
-            poly = 2.0D0 * poly - 1.0
+            read(150, *) poly
             do i = 1, N
                 call cpu_time(start)
                 do j = 1, 1000
@@ -50,12 +57,13 @@ program main
                 times(i) = 1000000 * (finish - start)
             end do
             bench(k) = minval(times)
-            if (bench(k) < epsilon(1.0D0)) then
-                go to 2
-            end if
         end do
         deallocate(poly)
-        print *, l, minval(bench), sum(bench) / S, maxval(bench), sqrt((sum(bench**2)-sum(bench)**2/S)/(S-1))
+        close(150)
+        write(*, *) l, minval(bench), sum(bench) / S, maxval(bench), sqrt((sum(bench**2)-sum(bench)**2/S)/(S-1))
+        open(150, file='out.txt', action='write', position='append')
+        write(150, *) l, minval(bench), sum(bench) / S, maxval(bench), sqrt((sum(bench**2)-sum(bench)**2/S)/(S-1))
+        close(150)
     end do
 
 end program

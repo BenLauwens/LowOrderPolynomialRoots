@@ -38,16 +38,18 @@ double smallestpositiveroot(size_t const N, double const coeffs[N]) {
         horner(N, poly, mid, &comid);
         posintervalhorner(N1, dpoly, low, high, &dcolow, &dcohigh);
         if (dcolow < 0.0 && dcohigh > 0.0) {
-            if (comid < 0.0) {
+            if (comid > 0.0) {
+                leftlow = low;
+                lefthigh = mid - comid / dcohigh;
+                rightlow = mid - comid / dcolow;
+                righthigh = high;
+            } else if (comid < 0.0) {
                 leftlow = low;
                 lefthigh = mid - comid / dcolow;
                 rightlow = mid - comid / dcohigh;
                 righthigh = high;
             } else {
-                leftlow = low;
-                lefthigh = mid - comid / dcohigh;
-                rightlow = mid - comid / dcolow;
-                righthigh = high;
+                return mid;
             }
             if (leftlow < lefthigh) {
                 if (rightlow < righthigh) {
@@ -76,12 +78,14 @@ double smallestpositiveroot(size_t const N, double const coeffs[N]) {
                     } else if (low < res && res < high) {
                         mid = res;
                     } else {
-                        if (comid * colow < 0.0) {
+                        if (comid * colow > 0.0) {
+                            low = mid;
+                            colow = comid;
+                        } else if (comid * cohigh > 0.0) {
                             high = mid;
                             cohigh = comid;
                         } else {
-                            low = mid;
-                            colow = comid;
+                            return mid;
                         }
                         mid = (low * cohigh - high * colow) / (cohigh - colow);
                     }
@@ -150,16 +154,23 @@ size_t realroots(size_t const N, double const coeffs[N], double (* const roots)[
         intervalhorner(N1, dpoly, low, high, &dcolow, &dcohigh);
         //printf("%+.16f %+.16f %+.16f %+.16f\n", mid, comid, dcolow, dcohigh);
         if (dcolow < 0.0 && dcohigh > 0.0) {
-            if (comid < 0.0) {
+            if (comid > 0.0) {
+                leftlow = low;
+                lefthigh = mid - comid / dcohigh;
+                rightlow = mid - comid / dcolow;
+                righthigh = high;
+            } else if (comid < 0.0) {
                 leftlow = low;
                 lefthigh = mid - comid / dcolow;
                 rightlow = mid - comid / dcohigh;
                 righthigh = high;
             } else {
-                leftlow = low;
-                lefthigh = mid - comid / dcohigh;
-                rightlow = mid - comid / dcolow;
-                righthigh = high;
+                (*roots)[counter] = mid;
+                counter += 1;
+                leftlow = 0.0;
+                lefthigh = 0.0;
+                rightlow = 0.0;
+                righthigh = 0.0;
             }
             if (leftlow < lefthigh) {
                 if (rightlow < righthigh) {
@@ -191,19 +202,23 @@ size_t realroots(size_t const N, double const coeffs[N], double (* const roots)[
                     } else if (low < newmid && newmid < high) {
                         mid = newmid;
                     } else {
-                        if (comid * colow < 0.0) {
+                        if (comid * colow > 0.0) {
+                            low = mid;
+                            colow = comid;
+                        } else if (comid * cohigh > 0.0) {
                             high = mid;
                             cohigh = comid;
                         } else {
-                            low = mid;
-                            colow = comid;
+                            (*roots)[counter] = mid;
+                            counter += 1;
+                            break;
                         }
                         mid = (low * cohigh - high * colow) / (cohigh - colow);
                     }
                 }
             }
         }
-        if (index == -1 || counter == N1) {
+        if (index == -1) {
             break;
         }
         low = list[index][0];

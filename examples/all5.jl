@@ -1,14 +1,4 @@
-for n in 2:20
-	name = Symbol("StackArray", n)
-    eval(quote
-		primitive type $name{F} $(64n) end
-		@inline $name{F}() where F<:AbstractFloat = Base.zext_int($name{F}, 0x00)
-		@inline push(arr::$name{F}, val::F) where F<:AbstractFloat = Base.or_int(Base.shl_int(arr, 64), Base.zext_int($name{F}, val))
-		@inline pop(arr::$name{F}) where F<:AbstractFloat = Base.lshr_int(arr, 64), reinterpret(F, Base.trunc_int(UInt64, arr))
-	end)
-end
-
-@generated function smallestpositiverootintervalnewtonregulafalsi(coeffs::NTuple{N,F}) where {N, F <: AbstractFloat}
+@generated function smallestpositiverootintervalnewtonregulafalsi(coeffs::NTuple{N,F}, lows::Ptr{F}, highs::Ptr{F}) where {N, F <: AbstractFloat}
 	if N == 1
 		return quote typemax(F) end
 	elseif N == 2
@@ -86,15 +76,11 @@ end
             comid′, comid = muladd(mid, comid′, comid), muladd(mid, comid, $(syms[i]))
         end
     end
-	S = (0, 0, 2, 7, 7, 9, 9, 10, 12, 13)
-	name = Symbol("StackArray", S[N])
 	quote
 		$(Expr(:meta, :inline))
 		$ex
 		if mm > zero(F) return typemax(F) end
 		domlow, domhigh = zero(F), one(F) - mm
-		lows = $name{F}()
-		highs = lows
 		index = 0
 		while true
 			#@show domlow domhigh
@@ -112,8 +98,8 @@ end
 				if leftlow < lefthigh
 					if rightlow < righthigh
 						index += 1
-						lows = push(lows, rightlow)
-						highs = push(highs, righthigh)
+						unsafe_store!(lows, rightlow, index)
+						unsafe_store!(highs, righthigh, index)
 					end
 					domlow, domhigh = leftlow, lefthigh
 					continue
@@ -145,15 +131,15 @@ end
 				end
 			end
 			if index == 0 break end
-			lows, domlow = pop(lows)
-			highs, domhigh = pop(highs)
+			domlow = unsafe_load(lows, index)
+			domhigh = unsafe_load(highs, index)
 			index -= 1
 		end
 		return typemax(F)
 	end
 end
 
-@generated function allrealrootintervalnewtonregulafalsi(coeffs::NTuple{N,F}, res::Ptr{F}) where {N, F <: AbstractFloat}
+@generated function allrealrootintervalnewtonregulafalsi(coeffs::NTuple{N,F}, res::Ptr{F}, lows::Ptr{F}, highs::Ptr{F}) where {N, F <: AbstractFloat}
 	if N == 1
 		return quote return 0 end
 	elseif N == 2
@@ -249,19 +235,16 @@ end
             comid′, comid = muladd(mid, comid′, comid), muladd(mid, comid, $(syms[i]))
         end
     end
-	name = Symbol("StackArray", 2N)
 	quote
 		$(Expr(:meta, :inline))
 		$ex
 		if mm == zero(F) && MM == zero(F) return 0 end
-		lows = $name{F}()
-		highs = lows
 		index = 0
 		domlow, domhigh = if mm < zero(F)
 			if MM < zero(F)
-				index += 1
-				lows = push(lows, zero(F))
-				highs = push(highs, one(F) - MM)
+				index = 1
+				unsafe_store!(lows, zero(F), 1)
+				unsafe_store!(highs, one(F) - MM, 1)
 			end
 			mm - one(F), zero(F)
 		else
@@ -284,8 +267,8 @@ end
 				if leftlow < lefthigh
 					if rightlow < righthigh
 						index += 1
-						lows = push(lows, rightlow)
-						highs = push(highs, righthigh)
+						unsafe_store!(lows, rightlow, index)
+						unsafe_store!(highs, righthigh, index)
 					end
 					domlow, domhigh = leftlow, lefthigh
 					continue
@@ -320,8 +303,8 @@ end
 				end
 			end
 			if index == 0 || counter == $(N-1) break end
-			lows, domlow = pop(lows)
-			highs, domhigh = pop(highs)
+			domlow = unsafe_load(lows, index)
+			domhigh = unsafe_load(highs, index)
 			index -= 1
 		end
 		return counter
@@ -334,34 +317,38 @@ using UnicodePlots
 
 let N = 1000
 	times = Vector{Float64}(undef, N)
-	#==for n in 3:9
+	for n in 3:9
 		res = pointer(Vector{Float64}(undef, n-1))
+		lows = pointer(Vector{Float64}(undef, 2n+1))
+		highs = pointer(Vector{Float64}(undef, 2n+1))
 		open("polynomials$n.txt", "r") do io
 			@showprogress for i = 1:N
 				str = readline(io)
 				p = tuple(parse.(Float64, split(str))...)
-				times[i] = 1000000000 * @belapsed allrealrootintervalnewtonregulafalsi($p, $res) samples=10000 evals=1000
+				times[i] = 1000000000 * @belapsed allrealrootintervalnewtonregulafalsi($p, $res, $lows, $highs) samples=10000 evals=1000
 			end
 		end
 		show(histogram(times))
 		println()
 		println(n, '\t', minimum(times), '\t', sum(times)/ N, '\t', maximum(times), '\t', sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
-		open("out3.txt", "a") do io
+		open("out5s.txt", "a") do io
 			println(io, n, "\t", minimum(times), "\t", sum(times)/ N, "\t", maximum(times), "\t", sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
 		end
-	end==#
+	end
 	for n in 3:9
+		lows = pointer(Vector{Float64}(undef, 2n+1))
+		highs = pointer(Vector{Float64}(undef, 2n+1))
 		open("polynomials$n.txt", "r") do io
 			@showprogress for i = 1:N
 				str = readline(io)
 				p = tuple(parse.(Float64, split(str))...)
-            	times[i] = 1000000000 * @belapsed smallestpositiverootintervalnewtonregulafalsi($p) samples=10000 evals=1000
+            	times[i] = 1000000000 * @belapsed smallestpositiverootintervalnewtonregulafalsi($p, $lows, $highs) samples=10000 evals=1000
 			end
         end
 		show(histogram(times))
 		println()
         println(n, '\t', minimum(times), '\t', sum(times)/ N, '\t', maximum(times), '\t', sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
-		open("out3s.txt", "a") do io
+		open("out5s.txt", "a") do io
 			println(io, n, "\t", minimum(times), "\t", sum(times)/ N, "\t", maximum(times), "\t", sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
 		end
     end

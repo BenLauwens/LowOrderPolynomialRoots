@@ -1,14 +1,4 @@
-for n in 2:20
-	name = Symbol("StackArray", n)
-    eval(quote
-		primitive type $name{F} $(64n) end
-		@inline $name{F}() where F<:AbstractFloat = Base.zext_int($name{F}, 0x00)
-		@inline push(arr::$name{F}, val::F) where F<:AbstractFloat = Base.or_int(Base.shl_int(arr, 64), Base.zext_int($name{F}, val))
-		@inline pop(arr::$name{F}) where F<:AbstractFloat = Base.lshr_int(arr, 64), reinterpret(F, Base.trunc_int(UInt64, arr))
-	end)
-end
-
-@generated function smallestpositiverootintervalnewtonregulafalsi(coeffs::NTuple{N,F}) where {N, F <: AbstractFloat}
+@generated function smallestpositiverootintervalnewtonregulafalsi(coeffs::NTuple{N,F}, lows::Ptr{F}, highs::Ptr{F}) where {N, F <: AbstractFloat}
 	if N == 1
 		return quote typemax(F) end
 	elseif N == 2
@@ -86,15 +76,12 @@ end
             comid′, comid = muladd(mid, comid′, comid), muladd(mid, comid, $(syms[i]))
         end
     end
-	S = (0, 0, 2, 7, 7, 9, 9, 10, 12, 13)
-	name = Symbol("StackArray", S[N])
 	quote
 		$(Expr(:meta, :inline))
+		$(Expr(:meta, :fastmath))
 		$ex
 		if mm > zero(F) return typemax(F) end
 		domlow, domhigh = zero(F), one(F) - mm
-		lows = $name{F}()
-		highs = lows
 		index = 0
 		while true
 			#@show domlow domhigh
@@ -103,17 +90,17 @@ end
 			$posintervalhorner
 			#@show comid codom′low codom′high
 			if codom′low < zero(F) < codom′high
-				leftlow, lefthigh, rightlow, righthigh = if comid < zero(F)
-					domlow, mid - comid / codom′low, mid - comid / codom′high, domhigh
-				else
+				leftlow, lefthigh, rightlow, righthigh = if comid > zero(F)
 					domlow, mid - comid / codom′high, mid - comid / codom′low, domhigh
+				else
+					domlow, mid - comid / codom′low, mid - comid / codom′high, domhigh
 				end
 				#@show leftlow lefthigh rightlow righthigh
 				if leftlow < lefthigh
 					if rightlow < righthigh
 						index += 1
-						lows = push(lows, rightlow)
-						highs = push(highs, righthigh)
+						unsafe_store!(lows, rightlow, index)
+						unsafe_store!(highs, righthigh, index)
 					end
 					domlow, domhigh = leftlow, lefthigh
 					continue
@@ -134,10 +121,10 @@ end
 						elseif domlow < newmid < domhigh
 							mid = newmid
 						else
-							if comid * codomlow < zero(F)
-								domhigh, codomhigh = mid, comid
+							if comid * codomlow > zero(F)
+								domlow, codomlow = mid, comid
 							else
-								domlow, codomlow = mid, comid	
+								domhigh, codomhigh = mid, comid
 							end
 							mid = (domlow*codomhigh - domhigh*codomlow) / (codomhigh - codomlow) # regula falsi
 						end
@@ -145,15 +132,15 @@ end
 				end
 			end
 			if index == 0 break end
-			lows, domlow = pop(lows)
-			highs, domhigh = pop(highs)
+			domlow = unsafe_load(lows, index)
+			domhigh = unsafe_load(highs, index)
 			index -= 1
 		end
 		return typemax(F)
 	end
 end
 
-@generated function allrealrootintervalnewtonregulafalsi(coeffs::NTuple{N,F}, res::Ptr{F}) where {N, F <: AbstractFloat}
+@generated function allrealrootintervalnewtonregulafalsi(coeffs::NTuple{N,F}, res::Ptr{F}, lows::Ptr{F}, highs::Ptr{F}) where {N, M, F <: AbstractFloat}
 	if N == 1
 		return quote return 0 end
 	elseif N == 2
@@ -199,37 +186,39 @@ end
             comid = muladd(mid, comid, $(syms[i]))
         end
     end
-    posintervalhorner = quote end
-	negintervalhorner = quote end
-    for i in 2:N-1
-        posintervalhorner = quote
-            $posintervalhorner
-            codom′low, codom′high = if codom′low > zero(F)
-                muladd(domlow, codom′low, $(syms′[i])), muladd(domhigh,  codom′high, $(syms′[i]))
-            elseif codom′high < zero(F)
-                muladd(domhigh, codom′low, $(syms′[i])), muladd(domlow,  codom′high, $(syms′[i]))
-            else
-                muladd(domhigh, codom′low, $(syms′[i])), muladd(domhigh,  codom′high, $(syms′[i]))
-            end
-        end
-		negintervalhorner = quote
-            $negintervalhorner
-            codom′low, codom′high = if codom′low > zero(F)
-                muladd(domlow, codom′high, $(syms′[i])), muladd(domhigh, codom′low, $(syms′[i]))
-            elseif codom′high < zero(F)
-                muladd(domhigh, codom′high, $(syms′[i])), muladd(domlow, codom′low, $(syms′[i]))
-            else
-                muladd(domlow, codom′high, $(syms′[i])), muladd(domlow, codom′low, $(syms′[i]))
-            end
-        end
-    end
-	intervalhorner = quote
+    intervalhorner = quote
         codom′low, codom′high = $(syms′[1]), $(syms′[1])
-		if domlow < zero(F)
-			$negintervalhorner
-		else
-			$posintervalhorner
-		end
+    end
+    for i in 2:N-1
+        intervalhorner = quote
+            $intervalhorner
+            codom′low, codom′high = if codom′low > zero(F)
+                if domlow > zero(F)
+                    muladd(domlow, codom′low, $(syms′[i])), muladd(domhigh,  codom′high, $(syms′[i]))
+                elseif domhigh < zero(F)
+                    muladd(domlow, codom′high, $(syms′[i])), muladd(domhigh, codom′low, $(syms′[i]))
+                else
+                    muladd(domlow, codom′high, $(syms′[i])), muladd(domhigh, codom′high, $(syms′[i]))
+                end
+            elseif codom′high < zero(F)
+                if domlow > zero(F)
+                    muladd(domhigh, codom′low, $(syms′[i])), muladd(domlow,  codom′high, $(syms′[i]))
+                elseif domhigh < zero(F)
+                    muladd(domhigh, codom′high, $(syms′[i])), muladd(domlow, codom′low, $(syms′[i]))
+                else
+                    muladd(domhigh, codom′low, $(syms′[i])), muladd(domlow, codom′low, $(syms′[i]))
+                end
+            else
+                if domlow > zero(F)
+                    muladd(domhigh, codom′low, $(syms′[i])), muladd(domhigh,  codom′high, $(syms′[i]))
+                elseif domhigh < zero(F)
+                    muladd(domlow, codom′high, $(syms′[i])), muladd(domlow, codom′low, $(syms′[i]))
+                else
+                    min(muladd(domlow, codom′high, $(syms′[i])), muladd(domhigh, codom′low, $(syms′[i]))), 
+                    max(muladd(domlow, codom′low, $(syms′[i])), muladd(domhigh, codom′high, $(syms′[i])))
+                end
+            end
+        end
     end
     horner2 = quote
         codomlow, codomhigh = $(syms[1]), $(syms[1])
@@ -249,19 +238,17 @@ end
             comid′, comid = muladd(mid, comid′, comid), muladd(mid, comid, $(syms[i]))
         end
     end
-	name = Symbol("StackArray", 2N)
 	quote
 		$(Expr(:meta, :inline))
+		$(Expr(:meta, :fastmath))
 		$ex
 		if mm == zero(F) && MM == zero(F) return 0 end
-		lows = $name{F}()
-		highs = lows
 		index = 0
 		domlow, domhigh = if mm < zero(F)
 			if MM < zero(F)
-				index += 1
-				lows = push(lows, zero(F))
-				highs = push(highs, one(F) - MM)
+				index = 1
+				unsafe_store!(lows, zero(F), 1)
+				unsafe_store!(highs, one(F) - MM, 1)
 			end
 			mm - one(F), zero(F)
 		else
@@ -275,17 +262,17 @@ end
 			$intervalhorner
 			#@show mid comid codom′low codom′high
 			if codom′low < zero(F) < codom′high
-				leftlow, lefthigh, rightlow, righthigh = if comid < zero(F)
-					domlow, mid - comid / codom′low, mid - comid / codom′high, domhigh
-				else
+				leftlow, lefthigh, rightlow, righthigh = if comid > zero(F)
 					domlow, mid - comid / codom′high, mid - comid / codom′low, domhigh
+				else
+					domlow, mid - comid / codom′low, mid - comid / codom′high, domhigh
 				end
 				#@show leftlow lefthigh rightlow righthigh
 				if leftlow < lefthigh
 					if rightlow < righthigh
 						index += 1
-						lows = push(lows, rightlow)
-						highs = push(highs, righthigh)
+						unsafe_store!(lows, rightlow, index)
+						unsafe_store!(highs, righthigh, index)
 					end
 					domlow, domhigh = leftlow, lefthigh
 					continue
@@ -309,10 +296,10 @@ end
 						elseif domlow < newmid < domhigh
 							mid = newmid
 						else
-							if comid * codomlow < zero(F)
-								domhigh, codomhigh = mid, comid
-							else
+							if comid * codomlow > zero(F)
 								domlow, codomlow = mid, comid
+							else
+								domhigh, codomhigh = mid, comid
 							end
 							mid = (domlow*codomhigh - domhigh*codomlow) / (codomhigh - codomlow) # regula falsi
 						end
@@ -320,8 +307,8 @@ end
 				end
 			end
 			if index == 0 || counter == $(N-1) break end
-			lows, domlow = pop(lows)
-			highs, domhigh = pop(highs)
+			domlow = unsafe_load(lows, index)
+			domhigh = unsafe_load(highs, index)
 			index -= 1
 		end
 		return counter
@@ -334,36 +321,39 @@ using UnicodePlots
 
 let N = 1000
 	times = Vector{Float64}(undef, N)
-	#==for n in 3:9
+	for n in 3:9
 		res = pointer(Vector{Float64}(undef, n-1))
+		lows = pointer(Vector{Float64}(undef, 2n+1))
+		highs = pointer(Vector{Float64}(undef, 2n+1))
 		open("polynomials$n.txt", "r") do io
 			@showprogress for i = 1:N
 				str = readline(io)
 				p = tuple(parse.(Float64, split(str))...)
-				times[i] = 1000000000 * @belapsed allrealrootintervalnewtonregulafalsi($p, $res) samples=10000 evals=1000
+				times[i] = 1000000000 * @belapsed allrealrootintervalnewtonregulafalsi($p, $res, $lows, $highs) samples=10000 evals=1000
 			end
 		end
 		show(histogram(times))
 		println()
 		println(n, '\t', minimum(times), '\t', sum(times)/ N, '\t', maximum(times), '\t', sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
-		open("out3.txt", "a") do io
+		open("out4.txt", "a") do io
 			println(io, n, "\t", minimum(times), "\t", sum(times)/ N, "\t", maximum(times), "\t", sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
 		end
-	end==#
+	end
 	for n in 3:9
+		lows = pointer(Vector{Float64}(undef, 2n+1))
+		highs = pointer(Vector{Float64}(undef, 2n+1))
 		open("polynomials$n.txt", "r") do io
 			@showprogress for i = 1:N
 				str = readline(io)
 				p = tuple(parse.(Float64, split(str))...)
-            	times[i] = 1000000000 * @belapsed smallestpositiverootintervalnewtonregulafalsi($p) samples=10000 evals=1000
+            	times[i] = 1000000000 * @belapsed smallestpositiverootintervalnewtonregulafalsi($p, $lows, $highs) samples=10000 evals=1000
 			end
         end
 		show(histogram(times))
 		println()
         println(n, '\t', minimum(times), '\t', sum(times)/ N, '\t', maximum(times), '\t', sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
-		open("out3s.txt", "a") do io
+		open("out4.txt", "a") do io
 			println(io, n, "\t", minimum(times), "\t", sum(times)/ N, "\t", maximum(times), "\t", sqrt((sum(times.^2)-sum(times)^2/N)/(N-1)))
 		end
     end
 end
-
